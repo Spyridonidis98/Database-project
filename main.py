@@ -23,6 +23,7 @@ if(user!=False):
         mags_editors = db.get_magazines_editors(mags[0]["Issn"])
         print(mags_editors)
 
+
     else:
         #to do later 
         print("user is a reader")
