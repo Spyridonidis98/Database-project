@@ -15,12 +15,12 @@ class GUI:
         self.showLoginScreen()
         
         self.db = DataModel("db_project.db")
-        self.user = False 
+        self.user = None  
         self.magazines = None
         self.magazines_publications = None
         self.magazines_subjects = None
         self.magazines_editors = None
-        self.test = None
+        
 
     # === Login ===
     def showLoginScreen(self):
