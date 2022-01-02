@@ -20,6 +20,7 @@ class GUI:
         self.magazines_publications = None
         self.magazines_subjects = None
         self.magazines_editors = None
+        self.test = None
 
     # === Login ===
     def showLoginScreen(self):
