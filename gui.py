@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 import os
 import webbrowser
-from database_class import DataModel
 
 class GUI:
     def __init__(self, root):
@@ -13,13 +12,6 @@ class GUI:
         self.root.tk.call("source", os.path.join("Azure-ttk-theme", "azure.tcl"))
         self.root.tk.call("set_theme", "light")
         self.showLoginScreen()
-        
-        self.db = DataModel("db_project.db")
-        self.user = None
-        self.magazines = None
-        self.magazines_publications = None
-        self.magazines_subjects = None
-        self.magazines_editors = None
 
     # === Login ===
     def showLoginScreen(self):
@@ -59,16 +51,15 @@ class GUI:
     def submitLoginInfo(self):
         username = self.usernameEntry.get()
         password = self.passwordEntry.get()
-        self.user  = self.db.user_loggin(username, password)
-        if self.user==False:
-            self.errorLabel.config(text = "Wrong username/password!")
-        elif self.user['User_type']=="reader":
+        print(username, password)
+        if username in ("reader", "r"):
             self.destroyLoginScreen()
             self.showReaderWindow()
-        else:
+        elif username in ("publisher", "p"):
             self.destroyLoginScreen()
             self.showPublisherWindow()
-        
+        else:
+            self.errorLabel.config(text = "Wrong username/password!")
 
     # === Reader ===
     # --- Windows ---
@@ -103,11 +94,11 @@ class GUI:
         self.actionTitle.config(text = "Search")
 
         self.searchScrollbar = ttk.Scrollbar(self.mainReaderWindowFrame)
-        self.searchScrollbar.pack(side="right", fill="y")
+        self.searchScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.searchCanvas = tk.Canvas(self.mainReaderWindowFrame, yscrollcommand = self.searchScrollbar.set, highlightthickness = 0)
         self.searchCanvas.pack(fill = "both", expand = True)
-        self.searchScrollbar.config(command = self.searchCanvas.yview)
+        self.searchScrollbar.config(command = lambda *args: self.yview(self.searchCanvas, *args))
 
         self.searchFrame = ttk.Frame(self.searchCanvas)
         self.searchCanvas.create_window((0, 0), window = self.searchFrame, anchor = "nw")
@@ -179,11 +170,11 @@ class GUI:
         self.backLabel.bind("<1>", lambda e: self.magazineToSearch())
 
         self.magazineScrollbar = ttk.Scrollbar(self.mainReaderWindowFrame)
-        self.magazineScrollbar.pack(side="right", fill="y")
+        self.magazineScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.magazineCanvas = tk.Canvas(self.mainReaderWindowFrame, yscrollcommand = self.magazineScrollbar.set, highlightthickness = 0)
         self.magazineCanvas.pack(fill = "both", expand = True)
-        self.magazineScrollbar.config(command=self.magazineCanvas.yview)
+        self.magazineScrollbar.config(command = lambda *args: self.yview(self.magazineCanvas, *args))
 
         self.magazineFrame = ttk.Frame(self.magazineCanvas)
         self.magazineCanvas.create_window((0, 0), window = self.magazineFrame, anchor = "nw")
@@ -278,11 +269,11 @@ class GUI:
         self.backLabel.bind("<1>", lambda e: self.publicationToMagazine(issn))
 
         self.publicationScrollbar = ttk.Scrollbar(self.mainReaderWindowFrame)
-        self.publicationScrollbar.pack(side="right", fill="y")
+        self.publicationScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.publicationCanvas = tk.Canvas(self.mainReaderWindowFrame, yscrollcommand = self.publicationScrollbar.set, highlightthickness = 0)
         self.publicationCanvas.pack(fill = "both", expand = True)
-        self.publicationScrollbar.config(command=self.publicationCanvas.yview)
+        self.publicationScrollbar.config(command = lambda *args: self.yview(self.publicationCanvas, *args))
 
         self.publicationFrame = ttk.Frame(self.publicationCanvas)
         self.publicationCanvas.create_window((0, 0), window = self.publicationFrame, anchor = "nw")
@@ -384,11 +375,11 @@ class GUI:
             self.backLabel.bind("<1>", lambda e: self.articleToSearch())
 
         self.articleScrollbar = ttk.Scrollbar(self.mainReaderWindowFrame)
-        self.articleScrollbar.pack(side="right", fill="y")
+        self.articleScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.articleCanvas = tk.Canvas(self.mainReaderWindowFrame, yscrollcommand = self.articleScrollbar.set, highlightthickness = 0)
         self.articleCanvas.pack(fill = "both", expand = True)
-        self.articleScrollbar.config(command=self.articleCanvas.yview)
+        self.articleScrollbar.config(command = lambda *args: self.yview(self.articleCanvas, *args))
 
         self.articleFrame = ttk.Frame(self.articleCanvas)
         self.articleCanvas.create_window((0, 0), window = self.articleFrame, anchor = "nw")
@@ -647,11 +638,11 @@ class GUI:
         self.actionTitle.config(text = "All Magazines")
 
         self.magazinesScrollbar = ttk.Scrollbar(self.mainPublisherWindowFrame)
-        self.magazinesScrollbar.pack(side="right", fill="y")
+        self.magazinesScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.magazinesCanvas = tk.Canvas(self.mainPublisherWindowFrame, yscrollcommand = self.magazinesScrollbar.set, highlightthickness = 0)
         self.magazinesCanvas.pack(fill = "both", expand = True)
-        self.magazinesScrollbar.config(command = self.magazinesCanvas.yview)
+        self.magazinesScrollbar.config(command = lambda *args: self.yview(self.magazinesCanvas, *args))
 
         self.magazinesFrame = ttk.Frame(self.magazinesCanvas)
         self.magazinesCanvas.create_window((0, 0), window = self.magazinesFrame, anchor = "nw")
@@ -673,11 +664,32 @@ class GUI:
         self.magazinesButtonsFrame = ttk.Frame(self.magazinesFrame)
         self.magazinesButtonsFrame.pack(fill = "x", expand = False)
 
-        #fetch publishers magazines
-        self.magazines = self.db.get_publishers_magazines(self.user['Id'])
-        magazines = []
-        for mag in self.magazines:
-            magazines.append((mag["Issn"],mag["Title"]))
+        magazines = [
+            ("1111-1111", "Magazine 1"),
+            ("1111-1112", "Magazine 2"),
+            ("1111-1113", "Magazine 3"),
+            ("1111-1114", "Magazine 4"),
+            ("1111-1115", "Magazine 5"),
+            ("1111-1116", "Magazine 6"),
+            ("1111-1117", "Magazine 7"),
+            ("1111-1118", "Magazine 8"),
+            ("1111-1119", "Magazine 9"),
+            ("1111-1110", "Magazine 10"),
+            ("1111-1121", "Magazine 11"),
+            ("1111-1122", "Magazine 12"),
+            ("1111-1123", "Magazine 13"),
+            ("1111-1124", "Magazine 14"),
+            ("1111-1125", "Magazine 15"),
+            ("1111-1126", "Magazine 16"),
+            ("1111-1127", "Magazine 17"),
+            ("1111-1128", "Magazine 18"),
+            ("1111-1129", "Magazine 19"),
+            ("1111-1120", "Magazine 20"),
+            ("1111-1131", "Magazine 21"),
+            ("1111-1132", "Magazine 22"),
+            ("1111-1133", "Magazine 23"),
+            ("1111-1134", "Magazine 24")
+        ]
 
         self.magazineButtons = []
         for i, m in enumerate(magazines):
@@ -695,11 +707,11 @@ class GUI:
         self.backLabel.bind("<1>", lambda e: self.magazineInfoToMagazines())
 
         self.magazineInfoScrollbar = ttk.Scrollbar(self.mainPublisherWindowFrame)
-        self.magazineInfoScrollbar.pack(side="right", fill="y")
+        self.magazineInfoScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.magazineInfoCanvas = tk.Canvas(self.mainPublisherWindowFrame, yscrollcommand = self.magazineInfoScrollbar.set, highlightthickness = 0)
         self.magazineInfoCanvas.pack(fill = "both", expand = True)
-        self.magazineInfoScrollbar.config(command=self.magazineInfoCanvas.yview)
+        self.magazineInfoScrollbar.config(command = lambda *args: self.yview(self.magazineInfoCanvas, *args))
 
         self.magazineInfoFrame = ttk.Frame(self.magazineInfoCanvas)
         self.magazineInfoCanvas.create_window((0, 0), window = self.magazineInfoFrame, anchor = "nw")
@@ -765,46 +777,32 @@ class GUI:
         else:
             self.actionTitle.config(text = issn)
 
-            # fetch mag
-            mag = None
-            for m in self.magazines:
-                if m["Issn"] == issn:
-                    mag = m
-
-            title = mag["Title"]
-                    
+            # fetch info
+            title = "Magazine Title" # from sql
             self.magazineInfoTitleEntry.insert(0, title)
 
             self.magazineInfoISSNEntry.insert(0, issn)
 
-            #fetch subjects
-            self.magazines_subjects = self.db.get_magazines_subjects(mag["Issn"])
-            subjects = []
-            for s in self.magazines_subjects:
-                subjects.append(s)
-
+            subjects = ["Subject 1", "Subject 3"] # from sql
             self.magazineInfoSubjectEntries[0].set(subjects[0])
             for s in subjects[1:]:
                 self.magazineInfoAddSubject()
                 self.magazineInfoSubjectEntries[-1].set(s)
 
-            #fetch mags editors 
-            editors = [] 
-            self.magazines_editors = self.db.get_magazines_editors(mag["Issn"])
-            for e in self.magazines_editors:
-                editors.append(e["Fname"]+" "+e["Lname"])
-
+            editors = ["Editor 3", "Editor 1", "Editor 2"] # from sql
             self.magazineInfoEditorEntries[0].set(editors[0])
             for e in editors[1:]:
                 self.magazineInfoAddEditor()
                 self.magazineInfoEditorEntries[-1].set(e)
 
-            # fetch magazines publications
-            self.magazines_publications = self.db.get_magazines_publications(issn)
-            publications = []
-            for pub in self.magazines_publications:
-                publications.append((f"{pub['Volume']}-{pub['Issue']}",))
-
+            # fetch publications
+            publications = [
+                ("01,01",),
+                ("01,02",),
+                ("01,03",),
+                ("02,01",),
+                ("02,02",)
+            ]
 
             self.publicationButtons = []
             for i, p in enumerate(publications):
@@ -822,11 +820,11 @@ class GUI:
         self.backLabel.bind("<1>", lambda e: self.publicationInfoToMagazineInfo(issn))
 
         self.publicationInfoScrollbar = ttk.Scrollbar(self.mainPublisherWindowFrame)
-        self.publicationInfoScrollbar.pack(side="right", fill="y")
+        self.publicationInfoScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.publicationInfoCanvas = tk.Canvas(self.mainPublisherWindowFrame, yscrollcommand = self.publicationInfoScrollbar.set, highlightthickness = 0)
         self.publicationInfoCanvas.pack(fill = "both", expand = True)
-        self.publicationInfoScrollbar.config(command=self.publicationInfoCanvas.yview)
+        self.publicationInfoScrollbar.config(command = lambda *args: self.yview(self.publicationInfoCanvas, *args))
 
         self.publicationInfoFrame = ttk.Frame(self.publicationInfoCanvas)
         self.publicationInfoCanvas.create_window((0, 0), window = self.publicationInfoFrame, anchor = "nw")
@@ -935,11 +933,11 @@ class GUI:
         self.backLabel.bind("<1>", lambda e: self.articleInfoToPublicationInfo(issn, key))
 
         self.articleInfoScrollbar = ttk.Scrollbar(self.mainPublisherWindowFrame)
-        self.articleInfoScrollbar.pack(side="right", fill="y")
+        self.articleInfoScrollbar.pack(side="right", fill="y", pady = 2)
 
         self.articleInfoCanvas = tk.Canvas(self.mainPublisherWindowFrame, yscrollcommand = self.articleInfoScrollbar.set, highlightthickness = 0)
         self.articleInfoCanvas.pack(fill = "both", expand = True)
-        self.articleInfoScrollbar.config(command=self.articleInfoCanvas.yview)
+        self.articleInfoScrollbar.config(command = lambda *args: self.yview(self.articleInfoCanvas, *args))
 
         self.articleInfoFrame = ttk.Frame(self.articleInfoCanvas)
         self.articleInfoCanvas.create_window((0, 0), window = self.articleInfoFrame, anchor = "nw")
@@ -1351,6 +1349,10 @@ class GUI:
         self.showPublicationInfo(issn, key)
 
     # === Miscellaneous ===
+    def yview(self, canvas, *args):
+        if canvas.yview() == (0.0, 1.0): return
+        canvas.yview(*args)
+
     def stringToColor(self, string):
         return "#" + "{:+07x}".format(hash(string))[-6:]
 
