@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import os
 import webbrowser
+from database_class import DataModel
 
 class GUI:
     def __init__(self, root):
@@ -12,6 +13,13 @@ class GUI:
         self.root.tk.call("source", os.path.join("Azure-ttk-theme", "azure.tcl"))
         self.root.tk.call("set_theme", "light")
         self.showLoginScreen()
+        
+        self.db = DataModel("db_project.db")
+        self.user = None
+        self.magazines = None
+        self.magazines_publications = None
+        self.magazines_subjects = None
+        self.magazines_editors = None
 
     # === Login ===
     def showLoginScreen(self):
@@ -51,15 +59,16 @@ class GUI:
     def submitLoginInfo(self):
         username = self.usernameEntry.get()
         password = self.passwordEntry.get()
-        print(username, password)
-        if username in ("reader", "r"):
+        self.user  = self.db.user_loggin(username, password)
+        if self.user==False:
+            self.errorLabel.config(text = "Wrong username/password!")
+        elif self.user['User_type']=="reader":
             self.destroyLoginScreen()
             self.showReaderWindow()
-        elif username in ("publisher", "p"):
+        else:
             self.destroyLoginScreen()
             self.showPublisherWindow()
-        else:
-            self.errorLabel.config(text = "Wrong username/password!")
+        
 
     # === Reader ===
     # --- Windows ---
@@ -664,32 +673,11 @@ class GUI:
         self.magazinesButtonsFrame = ttk.Frame(self.magazinesFrame)
         self.magazinesButtonsFrame.pack(fill = "x", expand = False)
 
-        magazines = [
-            ("1111-1111", "Magazine 1"),
-            ("1111-1112", "Magazine 2"),
-            ("1111-1113", "Magazine 3"),
-            ("1111-1114", "Magazine 4"),
-            ("1111-1115", "Magazine 5"),
-            ("1111-1116", "Magazine 6"),
-            ("1111-1117", "Magazine 7"),
-            ("1111-1118", "Magazine 8"),
-            ("1111-1119", "Magazine 9"),
-            ("1111-1110", "Magazine 10"),
-            ("1111-1121", "Magazine 11"),
-            ("1111-1122", "Magazine 12"),
-            ("1111-1123", "Magazine 13"),
-            ("1111-1124", "Magazine 14"),
-            ("1111-1125", "Magazine 15"),
-            ("1111-1126", "Magazine 16"),
-            ("1111-1127", "Magazine 17"),
-            ("1111-1128", "Magazine 18"),
-            ("1111-1129", "Magazine 19"),
-            ("1111-1120", "Magazine 20"),
-            ("1111-1131", "Magazine 21"),
-            ("1111-1132", "Magazine 22"),
-            ("1111-1133", "Magazine 23"),
-            ("1111-1134", "Magazine 24")
-        ]
+        #fetch publishers magazines
+        self.magazines = self.db.get_publishers_magazines(self.user['Id'])
+        magazines = []
+        for mag in self.magazines:
+            magazines.append((mag["Issn"],mag["Title"]))
 
         self.magazineButtons = []
         for i, m in enumerate(magazines):
@@ -777,32 +765,46 @@ class GUI:
         else:
             self.actionTitle.config(text = issn)
 
-            # fetch info
-            title = "Magazine Title" # from sql
+            # fetch mag
+            mag = None
+            for m in self.magazines:
+                if m["Issn"] == issn:
+                    mag = m
+
+            title = mag["Title"]
+                    
             self.magazineInfoTitleEntry.insert(0, title)
 
             self.magazineInfoISSNEntry.insert(0, issn)
 
-            subjects = ["Subject 1", "Subject 3"] # from sql
+            #fetch subjects
+            self.magazines_subjects = self.db.get_magazines_subjects(mag["Issn"])
+            subjects = []
+            for s in self.magazines_subjects:
+                subjects.append(s)
+
             self.magazineInfoSubjectEntries[0].set(subjects[0])
             for s in subjects[1:]:
                 self.magazineInfoAddSubject()
                 self.magazineInfoSubjectEntries[-1].set(s)
 
-            editors = ["Editor 3", "Editor 1", "Editor 2"] # from sql
+            #fetch mags editors 
+            editors = [] 
+            self.magazines_editors = self.db.get_magazines_editors(mag["Issn"])
+            for e in self.magazines_editors:
+                editors.append(e["Fname"]+" "+e["Lname"])
+
             self.magazineInfoEditorEntries[0].set(editors[0])
             for e in editors[1:]:
                 self.magazineInfoAddEditor()
                 self.magazineInfoEditorEntries[-1].set(e)
 
-            # fetch publications
-            publications = [
-                ("01,01",),
-                ("01,02",),
-                ("01,03",),
-                ("02,01",),
-                ("02,02",)
-            ]
+            # fetch magazines publications
+            self.magazines_publications = self.db.get_magazines_publications(issn)
+            publications = []
+            for pub in self.magazines_publications:
+                publications.append((f"{pub['Volume']},{pub['Issue']}",))
+
 
             self.publicationButtons = []
             for i, p in enumerate(publications):
@@ -891,31 +893,32 @@ class GUI:
             self.actionTitle.config(text = key)
 
             # fetch info
+            
             self.publicationInfoVolumeEntry.insert(0, key.split(",")[0])
 
             self.publicationInfoIssueEntry.insert(0, key.split(",")[1])
 
-            year = 2021
+            year = "to check"
             self.publicationInfoYearEntry.insert(0, year)
 
-            month = 12
+            month = "to check"
             self.publicationInfoMonthEntry.insert(0, month)
 
-            editors = ["Editor 3", "Editor 2"] # from sql
+            pub_editors = self.db.get_publications_editors(issn, key.split(",")[0], key.split(",")[1])
+            editors = []
+            for e in pub_editors:
+                editors.append(e["Fname"]+" "+e["Lname"])
+
             self.publicationInfoEditorEntries[0].set(editors[0])
             for e in editors[1:]:
                 self.publicationInfoAddEditor()
                 self.publicationInfoEditorEntries[-1].set(e)
 
             # fetch articles
-            articles = [
-                ("doi:10.1000/181", "Article 1"),
-                ("doi:10.1000/182", "Article 2"),
-                ("doi:10.1000/183", "Article 3"),
-                ("doi:10.1000/184", "Article 4"),
-                ("doi:10.1000/185", "Article 5"),
-                ("doi:10.1000/186", "Article 6")
-            ]
+            pub_articles = self.db.get_publications_articles(issn, key.split(",")[0], key.split(",")[1])
+            articles = []
+            for p in pub_articles:
+                articles.append((p["Doi"], p["Title"]))
 
             self.articleButtons = []
             for i, a in enumerate(articles):
@@ -1043,48 +1046,64 @@ class GUI:
         if doi == "<new>":
             self.actionTitle.config(text = "New Article")
         else:
+            article = self.db.get_article(doi)
+
             self.actionTitle.config(text = doi)
 
-            # fetch info
+            # fetch article info
             self.articleInfoDOIEntry.insert(0, doi)
             
-            title = "Article Title" # from sql
+            title = article["Title"] # from sql
             self.articleInfoTitleEntry.insert(0, title)
 
-            url = "https://www.researchgate.net/profile/Nikoleta-Yiannoutsou/publication/232806353_A_Review_of_Mobile_Location-based_Games_for_Learning_across_Physical_and_Virtual_Spaces/links/53d0c9090cf2f7e53cfb9b9f/A-Review-of-Mobile-Location-based-Games-for-Learning-across-Physical-and-Virtual-Spaces.pdf"
+            url = article["Link_to_article"]
             self.articleInfoURLEntry.insert(0, url)
 
-            year = 2021
+            year = article["Publication_date"].split("/")[2]
             self.articleInfoYearEntry.insert(0, year)
 
-            month = 12
+            month = article["Publication_date"].split("/")[1]
             self.articleInfoMonthEntry.insert(0, month)
 
-            day = 25
+            day = article["Publication_date"].split("/")[0]
             self.articleInfoDayEntry.insert(0, day)
 
-            pages = 101
+            pages = article["No_pages"]
             self.articleInfoPagesEntry.insert(0, pages)
 
-            language = "Dutch"
+            language = article["Language"]
             self.articleInfoLanguageEntry.insert(0, language)
 
-            is_free = True
+
+            is_free = False
+            if article["Is_free"]==1:
+                is_free = True
+
             self.is_free.set(is_free)
 
-            subjects = ["Subject 3", "Subject 2"] # from sql
+            article_subs = self.db.get_articles_subjects(doi)
+            subjects = [] # from sql
+            for s in article_subs:
+                subjects.append(s)
+            if len(subjects)==0:
+                subjects.append("None to do")
+
             self.articleInfoSubjectEntries[0].set(subjects[0])
             for s in subjects[1:]:
                 self.articleInfoAddSubject()
                 self.articleInfoSubjectEntries[-1].set(s)
 
-            authors = ["Author 2"] # from sql
+            art_authors = self.db.get_articles_authors(doi)
+            authors = [] # from sql
+            for a in art_authors:
+                authors.append(a["Fname"]+" "+a["Lname"])
+
             self.articleInfoAuthorEntries[0].set(authors[0])
             for a in authors[1:]:
                 self.articleInfoAddAuthor()
                 self.articleInfoAuthorEntries[-1].set(a)
 
-            citations = ["Article 1", "Article 3", "Article 2"] # from sql
+            citations = ["To do"] # from sql
             self.articleInfoCitationEntries[0].set(citations[0])
             for c in citations[1:]:
                 self.articleInfoAddCitation()
