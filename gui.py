@@ -15,7 +15,7 @@ class GUI:
         self.showLoginScreen()
         
         self.db = DataModel("db_project.db")
-        self.user = True
+        self.user = None
         self.magazines = None
         self.magazines_publications = None
         self.magazines_subjects = None
