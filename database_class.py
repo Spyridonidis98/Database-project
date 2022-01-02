@@ -121,6 +121,12 @@ class DataModel():
             d.append(dict(i))
         return d
     
+    def get_article(self, doi):
+        r = self.con.execute("select * from ARTICLE where Doi = ?",(doi,)).fetchone()
+        r = dict(r)
+        return r
+        
+
     def add_article_to_publication(self, doi, title, no_pages, language, is_free, link_to_article, mag_issn, volume, issue):
         today = date.today()
         date_now = today.strftime("%d/%m/%Y")
