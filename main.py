@@ -10,7 +10,7 @@ if(user!=False):
         print(mags)
         mag_subs = db.get_magazines_subjects(mags[0]["Issn"])
         print(mag_subs)
-        pubs = db.get_magazines_publications("1111-1111")
+        pubs = db.get_magazines_publications(mags[0]["Issn"])
         print(pubs)
         articles = db.get_publications_articles(pubs[0]['Mag_issn'], pubs[0]['Volume'], pubs[0]['Issue'])
         print(articles)

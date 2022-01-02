@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import os
 import webbrowser
+from database_class import DataModel
 
 class GUI:
     def __init__(self, root):
@@ -12,6 +13,13 @@ class GUI:
         self.root.tk.call("source", os.path.join("Azure-ttk-theme", "azure.tcl"))
         self.root.tk.call("set_theme", "light")
         self.showLoginScreen()
+        
+        self.db = DataModel("db_project.db")
+        self.user = None
+        self.magazines = None
+        self.magazines_publications = None
+        self.magazines_subjects = None
+        self.magazines_editors = None
 
     # === Login ===
     def showLoginScreen(self):
@@ -51,15 +59,16 @@ class GUI:
     def submitLoginInfo(self):
         username = self.usernameEntry.get()
         password = self.passwordEntry.get()
-        print(username, password)
-        if username in ("reader", "r"):
+        self.user  = self.db.user_loggin(username, password)
+        if self.user==False:
+            self.errorLabel.config(text = "Wrong username/password!")
+        elif self.user['User_type']=="reader":
             self.destroyLoginScreen()
             self.showReaderWindow()
-        elif username in ("publisher", "p"):
+        else:
             self.destroyLoginScreen()
             self.showPublisherWindow()
-        else:
-            self.errorLabel.config(text = "Wrong username/password!")
+        
 
     # === Reader ===
     # --- Windows ---
@@ -664,32 +673,11 @@ class GUI:
         self.magazinesButtonsFrame = ttk.Frame(self.magazinesFrame)
         self.magazinesButtonsFrame.pack(fill = "x", expand = False)
 
-        magazines = [
-            ("1111-1111", "Magazine 1"),
-            ("1111-1112", "Magazine 2"),
-            ("1111-1113", "Magazine 3"),
-            ("1111-1114", "Magazine 4"),
-            ("1111-1115", "Magazine 5"),
-            ("1111-1116", "Magazine 6"),
-            ("1111-1117", "Magazine 7"),
-            ("1111-1118", "Magazine 8"),
-            ("1111-1119", "Magazine 9"),
-            ("1111-1110", "Magazine 10"),
-            ("1111-1121", "Magazine 11"),
-            ("1111-1122", "Magazine 12"),
-            ("1111-1123", "Magazine 13"),
-            ("1111-1124", "Magazine 14"),
-            ("1111-1125", "Magazine 15"),
-            ("1111-1126", "Magazine 16"),
-            ("1111-1127", "Magazine 17"),
-            ("1111-1128", "Magazine 18"),
-            ("1111-1129", "Magazine 19"),
-            ("1111-1120", "Magazine 20"),
-            ("1111-1131", "Magazine 21"),
-            ("1111-1132", "Magazine 22"),
-            ("1111-1133", "Magazine 23"),
-            ("1111-1134", "Magazine 24")
-        ]
+        #fetch publishers magazines
+        self.magazines = self.db.get_publishers_magazines(self.user['Id'])
+        magazines = []
+        for mag in self.magazines:
+            magazines.append((mag["Issn"],mag["Title"]))
 
         self.magazineButtons = []
         for i, m in enumerate(magazines):
@@ -777,32 +765,46 @@ class GUI:
         else:
             self.actionTitle.config(text = issn)
 
-            # fetch info
-            title = "Magazine Title" # from sql
+            # fetch mag
+            mag = None
+            for m in self.magazines:
+                if m["Issn"] == issn:
+                    mag = m
+
+            title = mag["Title"]
+                    
             self.magazineInfoTitleEntry.insert(0, title)
 
             self.magazineInfoISSNEntry.insert(0, issn)
 
-            subjects = ["Subject 1", "Subject 3"] # from sql
+            #fetch subjects
+            self.magazines_subjects = self.db.get_magazines_subjects(mag["Issn"])
+            subjects = []
+            for s in self.magazines_subjects:
+                subjects.append(s)
+
             self.magazineInfoSubjectEntries[0].set(subjects[0])
             for s in subjects[1:]:
                 self.magazineInfoAddSubject()
                 self.magazineInfoSubjectEntries[-1].set(s)
 
-            editors = ["Editor 3", "Editor 1", "Editor 2"] # from sql
+            #fetch mags editors 
+            editors = [] 
+            self.magazines_editors = self.db.get_magazines_editors(mag["Issn"])
+            for e in self.magazines_editors:
+                editors.append(e["Fname"]+" "+e["Lname"])
+
             self.magazineInfoEditorEntries[0].set(editors[0])
             for e in editors[1:]:
                 self.magazineInfoAddEditor()
                 self.magazineInfoEditorEntries[-1].set(e)
 
-            # fetch publications
-            publications = [
-                ("01,01",),
-                ("01,02",),
-                ("01,03",),
-                ("02,01",),
-                ("02,02",)
-            ]
+            # fetch magazines publications
+            self.magazines_publications = self.db.get_magazines_publications(issn)
+            publications = []
+            for pub in self.magazines_publications:
+                publications.append((f"{pub['Volume']}-{pub['Issue']}",))
+
 
             self.publicationButtons = []
             for i, p in enumerate(publications):
