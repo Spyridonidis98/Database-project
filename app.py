@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import tkinter as tk
 from tkinter import Message, ttk
@@ -32,6 +33,14 @@ class GUI:
         self.showLoginScreen()
 
     # === Login/Register ===
+    def logoutPublisher(self):
+        self.destroyPublisherWindow()
+        self.showLoginScreen()
+
+    def logoutReader(self):
+        self.destroyReaderWindow()
+        self.showLoginScreen()
+
     def showLoginScreen(self):
         self.mainLoginFrame = ttk.Frame(self.root)
         self.mainLoginFrame.pack(fill = "both", expand = True)
@@ -198,6 +207,7 @@ class GUI:
     def showSearch(self):
         self.backLabel.config(text = "\u25c1")
         self.backLabel.unbind("<1>")
+        self.backLabel.bind("<1>", lambda e: self.logoutReader())
         self.actionTitle.config(text = "Search")
 
         self.subscriptionLabel = tk.Label(self.topBarFrame, text = "Manage Subscriptions", font = ("Arial", 12, "underline"), fg = "dodger blue")
@@ -901,6 +911,7 @@ class GUI:
     def showMagazines(self):
         self.backLabel.config(text = "\u25c1")
         self.backLabel.unbind("<1>")
+        self.backLabel.bind("<1>", lambda e: self.logoutPublisher())
         self.actionTitle.config(text = "All Magazines")
 
         self.magazinesScrollbar = ttk.Scrollbar(self.mainPublisherWindowFrame)
