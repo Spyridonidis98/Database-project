@@ -124,6 +124,11 @@ class DataModel():
         self.con.execute(query,(issn,title,None,None,None,None,None,publisher_id))
         self.con.commit()
 
+    def get_magazines_publisher(self, issn):
+        r = self.con.execute("select Username from MAGAZINE, USER where Publisher_id=Id and Issn=?",(issn,)).fetchone()
+        r = dict(r)["Username"]
+        return r
+
     def delete_magazine(self, issn):
         self.con.execute("delete from MAGAZINE where Issn=?",(issn,))
         self.con.commit()

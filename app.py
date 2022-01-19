@@ -1,11 +1,12 @@
 from cProfile import label
+from json.tool import main
 import os
 import tkinter as tk
 from tkinter import Message, ttk
 from tkinter.constants import NONE
 import webbrowser
 from database_class import DataModel
-
+import datetime 
 
 class GUI:
     def __init__(self, root):
@@ -251,6 +252,7 @@ class GUI:
 
         self.all_subjects = self.db.get_all_subjects()
 
+        self.all_subjects = [(e[0]) for e in self.all_subjects ]
         self.all_subjects = ["", "Any"] + self.all_subjects
 
         self.searchBarSubjectEntry = ttk.OptionMenu(self.searchBarFrame, self.searchBarSubject, *self.all_subjects)
@@ -371,7 +373,7 @@ class GUI:
         self.publicationsButtonsFrame.pack(fill = "x", expand = False)
 
 
-        self.actionTitle.config(text = issn)
+        self.actionTitle.config(text = "Publisher: "+self.db.get_magazines_publisher(issn))
 
         magazine = self.db.get_magazine_by_issn(issn)[0]
         title = magazine["Title"]
@@ -994,8 +996,9 @@ class GUI:
         self.magazineInfoSubjectRemoveButtons = []
         self.magazineInfosubjectupdateButtons = []
 
-        self.all_subjects = tuple([e for e in self.db.get_all_subjects() if e[0] not in self.db.get_magazines_subjects(issn) ])
         
+        self.all_subjects = tuple([e for e in self.db.get_all_subjects() if e[0] not in self.db.get_magazines_subjects(issn) ])
+        self.all_subjects = tuple([(e[0]) for e in self.all_subjects ])
         self.magazineInfoSubjectEntries.append(ttk.Combobox(self.magazineInfoInfoFrame, values = self.all_subjects))
         self.magazineInfoSubjectEntries[0].grid(row = 2, column = 1, sticky = "w")
         self.magazineInfoSubjectRemoveButtons.append(tk.Button(self.magazineInfoInfoFrame, text = "x", command = lambda entry=self.magazineInfoSubjectEntries[-1]: self.magazineInfoRemoveSubject(entry), bg = "red", fg = "white", relief = "flat", font = ("Arial", 12)))
@@ -1080,7 +1083,7 @@ class GUI:
             eigenfactor = mag["Eigen_factor"]
             ais = mag["Article_influence_score"]
             citescore = mag["Cite_score"]
-            rating = mag["User_rating"]
+            rating = self.db.get_magazine_rating(issn)
             
 
             publications = [(f'{pub["Volume"]},{pub["Issue"]}',) for pub in self.db.get_magazines_publications(issn)]
@@ -1100,7 +1103,7 @@ class GUI:
                 self.magazineInfoAddEditor(issn)
                 self.magazineInfoEditorEntries[-1].set(e)
 
-            self.magazineInfoRatingNumberLabel.config(text = "{:.1f}".format(rating) if impact_factor!=None else f"{impact_factor}")
+            self.magazineInfoRatingNumberLabel.config(text = "{:.1f}".format(rating) if rating!=None else "{}".format(rating))
 
             self.publicationButtons = []
             for i, p in enumerate(publications):
@@ -1203,8 +1206,17 @@ class GUI:
 
             self.actionTitle.config(text = "New Publication")
             self.publicationInfoLabelFrame.destroy()
+
+            
+            date_now = datetime.date.today().strftime("%Y-%m-%d")
+            y = date_now.split("-")[0]
+            m = date_now.split("-")[1]
+            self.publicationInfoYearEntry.insert(0,y)
+            self.publicationInfoMonthEntry.insert(0,m)
+
             self.publicationInfoCreatePublicationButton = ttk.Button(self.publicationInfoInfoFrame, text="Create Publication", command= lambda:self.createPublication(issn))
             self.publicationInfoCreatePublicationButton.grid(row=6, column=1, sticky="w")
+            
 
 
         else:
@@ -1378,6 +1390,15 @@ class GUI:
         if doi == "<new>":
             self.actionTitle.config(text = "New Article")
             self.articleInfoScoresFrame.destroy()
+
+            date_now = datetime.date.today().strftime("%Y-%m-%d")
+            y = date_now.split("-")[0]
+            m = date_now.split("-")[1]
+            d = date_now.split("-")[2]
+            self.articleInfoYearEntry.insert(0, y)
+            self.articleInfoMonthEntry.insert(0, m)
+            self.articleInfoDayEntry.insert(0, d)
+
             self.articleInfoCreateArticleButton = ttk.Button(self.articleInfoInfoFrame, text="Create article", command= lambda: self.createArticle(issn, key))
             self.articleInfoCreateArticleButton.grid(row=15, column=1, sticky="w")
             
@@ -1404,7 +1425,7 @@ class GUI:
             self.articleInfoSubjects = [sub for sub in self.db.get_articles_subjects(doi)]
             self.articleInfoAuthors = [f'{a["Fname"]} {a["Lname"]}' for a in self.db.get_articles_authors(doi)] # from sql
             self.articleInfoCitations = [c["Title"] for c in self.db.get_articles_citations(doi)] # from sql
-            rating = None 
+            rating = self.db.get_article_rating(doi)
 
             self.articleInfoCitedLabel["text"] = "Cited by:" 
             citedby = self.db.get_citations_to_article(doi)
@@ -1492,7 +1513,7 @@ class GUI:
             self.db.create_magazine(issn, title, pub_id)
 
             for sub in subjects:
-                if sub in [s[0] for s in self.all_subjects]:
+                if sub in [s for s in self.all_subjects]:
                     self.db.add_subject_to_magazine(sub, issn)
                 else:
                     self.db.create_subject(sub)
@@ -1603,7 +1624,7 @@ class GUI:
                 pass
             
             self.magazineInfoUpdates = ttk.Label(self.magazineInfoInfoFrame, text = errors)
-            self.magazineInfoUpdates.grid(row=0, column=3 , sticky="s", padx=(0,0))
+            self.magazineInfoUpdates.grid(row=0, column=3 , sticky="s", padx=(140,0))
             return
 
         for s in subjectsCreated:
@@ -1712,6 +1733,7 @@ class GUI:
             self.publicationInfoUpdates = ttk.Label(self.publicationInfoInfoFrame, text="volume and issue already exists")
             self.publicationInfoUpdates.grid(row=0, column=2)
             return
+
 
         year = self.publicationInfoYearEntry.get()
         month = self.publicationInfoMonthEntry.get()
@@ -2117,6 +2139,7 @@ class GUI:
     # --- Add/Remove Fields ---
     def magazineInfoAddSubject(self, issn):
         self.all_subjects = tuple([e for e in self.db.get_all_subjects() if e[0] not in self.db.get_magazines_subjects(issn) ])
+        self.all_subjects = tuple([(e[0]) for e in self.all_subjects ])
         self.magazineInfoSubjectEntries.append(ttk.Combobox(self.magazineInfoInfoFrame, values = self.all_subjects))
         self.magazineInfoSubjectEntries[-1].grid(row = self.magazineInfoSubjectEntries[-2].grid_info()["row"] + 1, column = 1, sticky = "w")
 
